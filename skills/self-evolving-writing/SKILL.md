@@ -1,5 +1,5 @@
 ---
-name: my-writing-style
+name: self-evolving-writing
 description: |
   用用户的个人风格撰写发表在各平台的中文文章（微信公众号、知乎、掘金等技术社区），写完自动去 AI 味，
   并能从用户的定稿修改中持续学习、进化风格库。当用户提到写文章、写稿、发文、公众号文章、知乎回答、

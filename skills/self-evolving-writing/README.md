@@ -1,14 +1,14 @@
-# my-writing-style
+# self-evolving-writing
 
 自进化的个人风格写作 skill：用你的声纹写微信公众号 / 知乎 / 技术社区文章，写完自动去 AI 味（写作与审查由两个隔离的子 agent 完成），并从你的定稿修改里持续学习、进化风格库。
 
 ## 安装
 
 ```bash
-npx skills add MerliniKing/skills@my-writing-style
+npx skills add MerliniKing/skills@self-evolving-writing
 ```
 
-或手动复制本目录到 `~/.agents/skills/my-writing-style/`。
+或手动复制本目录到 `~/.agents/skills/self-evolving-writing/`。
 
 ## 首次使用
 

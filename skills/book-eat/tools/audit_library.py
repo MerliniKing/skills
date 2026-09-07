@@ -30,8 +30,9 @@ import check_source as cs          # noqa: E402
 import fig_coverage_lint as fcl    # noqa: E402
 import quote_check as qc           # noqa: E402
 
-NOTE_PATS = ['books/*/精读-*.md', 'books/*/摘要-*.md',
-             'books/*/deep-*.md', 'books/*/summary-*.md', 'books/*/lesson-*.md']
+NOTE_PATS = ['book-content/*/books/*/精读-*.md', 'book-content/*/books/*/摘要-*.md',
+             'book-content/*/books/*/deep-*.md', 'book-content/*/books/*/summary-*.md',
+             'book-content/*/books/*/*-chapter-*.md']
 BOOK_PREFIXES = ('今-', '古-', '唐-', '宋-', '明-', '清-', '汉-', '隋-', '晋-', '民国-')
 
 
@@ -52,8 +53,8 @@ def book_tokens(book):
 
 
 def run(out_path=None):
-    # 书名=路径第二段（basename 会把 'books/书/ocr' 的 ocr 当书名——见 fs1-04 残留教训）
-    books = sorted(p.split('/')[1] for p in glob.glob('books/*/ocr/full.txt'))
+    # ⚠ ocr/full.txt 已随 2026-08-28 提取清零退役：书目枚举现空转（诚实注记），恢复需改 book-parse 档案输入
+    books = sorted(p.split('/')[3] for p in glob.glob('book-content/*/books/*/ocr/full.txt'))
     caches, norm_caches = {}, {}
     lines = ['# 库级机检报告\n']
     n_src_issues = 0
@@ -150,7 +151,7 @@ def run(out_path=None):
             if p in seen:
                 continue
             seen.add(p)
-            talks = fcl.lesson_lint(p)
+            talks = fcl.chapter_lint(p)
             if talks:
                 suspects.append((p, talks[:4]))
     appx = []

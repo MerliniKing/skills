@@ -5,7 +5,7 @@
 用法：
   python3 tools/run_ocr.py <书名> <书路径：.pdf 或 .epub> [--force-ocr] [--pages A-B]
   示例：python3 tools/run_ocr.py 我的书名 sources/我的书.pdf
-        python3 tools/run_ocr.py 合刊中的一本 "books/某合集/某书.pdf" --force-ocr --pages 244-284
+        python3 tools/run_ocr.py 合刊中的一本 "sources/xuanxue/某合集.pdf" --force-ocr --pages 244-284
 
 可选参数：
   --force-ocr      跳过文字层检测，强制走 RapidOCR（内嵌文本层是旧OCR垃圾、直抽不可读时用；
@@ -76,7 +76,8 @@ try:
 except AttributeError:
     pass
 
-OUT = f'books/{BOOK}/ocr'
+# ⚠ 2026-08-28 起 OCR 退役（书籍文字真相源=book_parse 直读档案 book-parse/），本脚本仅存档备查
+OUT = os.path.join('book-content', 'xuanxue', 'books', BOOK, 'ocr')   # 旧书遗留档案位置
 PAGES_DIR = f'{OUT}/pages'
 LOW_CONF = 0.8   # 低于此置信度的文本行记入质量报告
 os.makedirs(PAGES_DIR, exist_ok=True)

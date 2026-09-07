@@ -12,13 +12,15 @@ description: 吃书流水线（中文镜像版）：提取优先、视觉兜底�
 
 ```
 sources/                     书源（PDF/EPUB）——仅本机，gitignore
-book-content/books/<书>/
-  book-parse/                真相源
+book-content/topics/         跨域共享术语库（术语库.md；2026-09-07 域拆分定案）
+book-content/<域>/           域=小写拼音 slug（xuanxue、zhongyi…），一域一套知识区：
+  books/<书>/
+    book-parse/                真相源
     pages.jsonl              PDF：{page, book_page, is_toc, toc, has_figure, has_table, regions[bbox%], text}
     chapters.jsonl           章节表：{title, print_page, pdf_page, end_pdf_page, verified}
     media/                   EPUB 内嵌媒体（抽出未登记）
   img/                       已收割图（crop 产物）＋ 图录.json
-  chapter-<slug>-<NN>-<标题>.md   章节页（发布单元）
+  <域>-<slug>-chapter-<NN>-<标题>.md   章节页（发布单元；lid=文件名全词干）
   精读-*.md 摘要-*.md README.md 学习进度.md
 site/                        私库网站（build_html/publish_web/home/theme/assets/dist）
 tools/                       book_parse 等流水线工具
@@ -32,7 +34,7 @@ tools/                       book_parse 等流水线工具
 | pages_probe.py | 仅预筛，绝不作为完整性证据 |
 | extract_figures.py | 遗留（私库自持），已被 crop 取代 |
 | run_ocr.py · quote_check.py · check_source.py | **随 OCR 退役**（2026-08-28） |
-| fig_coverage_lint.py · audit_library.py | 清理后失效（依赖 books/*/ocr/），仅存档 |
+| fig_coverage_lint.py · audit_library.py | 章节 glob 已对齐多域结构；ocr 供料的尾区探测清理后空转，仅存档 |
 ## 阶段 × 工具映射
 
 | 阶段 | 工具 / 命令 | 产出 |
@@ -48,7 +50,7 @@ tools/                       book_parse 等流水线工具
 
 ## 第 0 步 · 状态检测（每次调用）
 
-| book-content/books/<书>/book-parse/ | book-content/books/<书>/chapter-*.md | 状态 |
+| book-content/<域>/books/<书>/book-parse/ | book-content/<域>/books/<书>/<lid>-<标题>.md | 状态 |
 |---|---|---|
 | 无 | 无 | 全新 → ① |
 | 有 | 无 | 已解析 → ②定纲门 |

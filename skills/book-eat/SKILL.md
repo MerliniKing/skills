@@ -15,7 +15,9 @@ changes require user sign-off). Nothing else is a completeness witness.
 
 ```
 book-content/
-  books/<book>/
+  topics/                  CROSS-DOMAIN shared glossary (术语库.md; 2026-09-07 domain split)
+  <domain>/                domain = lowercase pinyin slug (xuanxue, zhongyi, …); one per domain:
+    books/<book>/
     book-parse/              TRUTH SOURCE (per-page / per-chapter archive)
       pages.jsonl            PDF: {page, book_page, is_toc, toc, has_figure, has_table, regions, text}
                              regions: [y0,y1,type]（2026-08-31 起：左右无环绕正文时上下两界简写，crop 取整页宽）
@@ -24,7 +26,7 @@ book-content/
       chapters.jsonl         chapter table: {title, print_page, pdf_page, end_pdf_page, verified}
       media/                 EPUB embedded media (extracted, unregistered until harvest)
     img/                     cropped figures actually harvested (+ 图录.json manifest)
-    chapter-<slug>-<NN>-<标题>.md   chapter page (publish unit)
+    <domain>-<slug>-chapter-<NN>-<标题>.md   chapter page (publish unit; lid = full file stem)
     精读-*.md 摘要-*.md README.md 学习进度.md
 site/
   build_html.py · publish_web.sh · home/ · theme/ · assets/
@@ -34,7 +36,11 @@ sources/                     book files (PDF/EPUB) — local only, gitignored
 ```
 
 Publish resolves each `src="img/…"` in a chapter page directly from
-`book-content/books/<book>/img/`; a missing file blocks publish (that is a guard, not a bug).
+`book-content/<domain>/books/<book>/img/`; a missing file blocks publish (that is a guard, not a bug).
+Published tree (2026-09-07): root `/` = cross-domain React shelf + kanban/roadmap/glossary +
+progress.json + home-data.json; domain content under `/books/<domain>/<bookslug>/`
+(`<domain>-<slug>-chapter-<NN>.html`, `<domain>-<slug>-book.html`, per-book `img/`;
+domain card page `/books/<domain>/<domain>-cards.html`). Old flat `/xuanxue/` URLs retired (404).
 
 ## Tools
 
@@ -48,11 +54,10 @@ Tool status (do NOT resurrect without user sign-off):
 | pages_probe.py | optional pre-filter only; never a completeness witness |
 | extract_figures.py | legacy (private library); superseded by `book_parse crop` |
 | run_ocr.py · quote_check.py · check_source.py | **retired** with OCR (2026-08-28) |
-| fig_coverage_lint.py · audit_library.py | inoperative post-purge (they read books/*/ocr/); kept for history |
+| fig_coverage_lint.py · audit_library.py | chapter-glob updated to the multi-domain layout; ocr-fed appendix probe inert post-purge (kept for history) |
 
-Private-library layout note: the host library may nest the pipeline under a content dir
-(e.g. `book-content/books/<book>`, generators under `site/`); run book_parse from the
-directory that owns `books/` so relative paths resolve.
+Private-library layout note: the pipeline lives under `book-content/<domain>/books/<book>`
+(generators under `site/`); run book_parse from the repository root so relative paths resolve.
 
 ## Stage × tool map
 
@@ -70,7 +75,7 @@ directory that owns `books/` so relative paths resolve.
 
 ## Step 0 · State detection (every invocation)
 
-| book-content/books/<book>/book-parse/ | book-content/books/<book>/chapter-*.md | state |
+| book-content/<domain>/books/<book>/book-parse/ | book-content/<domain>/books/<book>/<lid>-<标题>.md | state |
 |---|---|---|
 | absent | absent | fresh → ① |
 | present | absent | parsed → ② outline gate |

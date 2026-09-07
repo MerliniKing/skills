@@ -5,7 +5,7 @@ r"""逐页页况探测：判断扫描书每一页是 空白/纯文字/有表格�
   · 表格框 = 同页存在 ≥2 条贯通横向长直线 且 ≥2 条纵向长直线
   · 插图   = 出现高度超过正文行高的"厚墨带"（连续多行高密度墨迹）或超大墨块占比区
   · 空白   = 全页墨迹 < 1.5%
-输出 books/<书>/img/pages.jsonl（每页一行）＋摘要 stdout。
+输出 book-content/<域>/books/<书>/img/pages.jsonl（每页一行）＋摘要 stdout。
 拿不准（有框但少、或墨带临界）标 needs_eye=true 交人工/视觉复核。
 
 用法: python3 pages_probe.py <书目录名> [--pdf 路径] [--dpi 80]
@@ -58,8 +58,17 @@ def main():
     ap=argparse.ArgumentParser()
     ap.add_argument('book'); ap.add_argument('--pdf'); ap.add_argument('--dpi',type=int,default=80)
     a=ap.parse_args()
-    root='/home/breathinglife/code/xuanxue'
-    bdir=os.path.join(root,'books',a.book)
+    root=os.getcwd()
+    while root!=os.path.dirname(root) and not os.path.isdir(os.path.join(root,'book-content')):
+        root=os.path.dirname(root)
+    if not os.path.isdir(os.path.join(root,'book-content')):
+        sys.exit('未找到仓库根（含 book-content/）')
+    hits=[os.path.join(root,'book-content',d,'books',a.book)
+          for d in sorted(os.listdir(os.path.join(root,'book-content')))
+          if os.path.isdir(os.path.join(root,'book-content',d,'books',a.book))]
+    if len(hits)!=1:
+        print('书目录不唯一/未找到（多域结构 book-content/<域>/books/<书>），候选:',hits); sys.exit(2)
+    bdir=hits[0]
     pdf=a.pdf
     if not pdf:
         src=os.path.join(bdir,'sources')

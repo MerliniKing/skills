@@ -87,14 +87,26 @@ def _root():
     sys.exit('未找到仓库根（含 sources/）——请在库根或 book-content/ 下执行')
 
 def book_root(book):
+    """书目录定位/落位（多域：book-content/<域>/books/<书>；2026-09-07 域拆分定案）。
+    已存在→跨域查找；新书落位默认 xuanxue 域，可传 '<域>/<书名>' 显式指定。"""
     root = _root()
+    content = os.path.join(root, 'book-content')
+    doms = sorted(d for d in os.listdir(content)
+                  if os.path.isdir(os.path.join(content, d))) if os.path.isdir(content) else []
+    for dom in doms:
+        cand = os.path.join(content, dom, 'books', book)
+        if os.path.isdir(cand):
+            return cand
     for cand in (os.path.join(root, 'book-content', 'books', book),
                  os.path.join(root, 'books', book)):
         if os.path.isdir(cand):
-            os.makedirs(cand, exist_ok=True)
             return cand
-    os.makedirs(os.path.join(root, 'book-content', 'books', book), exist_ok=True)
-    return os.path.join(root, 'book-content', 'books', book)
+    dom, _, name = book.partition('/')
+    if not name:
+        dom, name = ('xuanxue' if 'xuanxue' in doms else (doms[0] if doms else 'xuanxue')), book
+    cand = os.path.join(content, dom, 'books', name)
+    os.makedirs(cand, exist_ok=True)
+    return cand
 
 def find_pdf(book, override):
     if override:

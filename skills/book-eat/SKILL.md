@@ -64,7 +64,7 @@ Private-library layout note: the pipeline lives under `book-content/<domain>/boo
 | stage | tool / command | output |
 |---|---|---|
 | ① parse · render | `book_parse render <book> [--pdf src]`（EPUB 自动走结构化分支） | page renders / `chapters.jsonl` + `media/` |
-| ① parse · vision read | `book_parse prompts <book>` prints shard briefs → spawn one Read-only agent per shard (**max 2 concurrent** — user-set 2026-08-31; gateway hard-caps ≈4 with account-level 429 at 5+) | shard JSONL files, appended per page with `ts` (never chat-only, never batch-at-end) |
+| ① parse · vision read | `book_parse prompts <book>` prints shard briefs（**20 页/片**，2026-09-11 定案——缩小单 agent 上下文的污染半径）→ spawn one Read-only agent per shard (**max 2 concurrent** — user-set 2026-08-31; gateway hard-caps ≈4 with account-level 429 at 5+)；**安全审核风暴 → 隔离派发 runbook（见下）** | shard JSONL files, appended per page with `ts` (never chat-only, never batch-at-end); 卡页记 `# stuck` 行 |
 | ① parse · crop | `book_parse crop <book> --round A --dir <shards>`（merge 之前；regions → `book-parse/imgs/`，幂等） | per-page figure/table crops |
 | ① parse · verify | `book_parse sample <book>`（10% 随机抽裁图 → 渲染 300dpi 原页 → 打印抽检派工；agent 回填报告后 `sample --check` 验收，非 pass＝exit 1。**2026-08-31 起替代逐张目验**） | `book-parse/verify/{samples.json,sample-report.jsonl}` |
 | ① parse · merge | `book_parse merge <book> --round A --dir <shards>`（自动附章节解析） | `book-parse/pages.jsonl` + `chapters.jsonl` + `chapters/<章>/`（原文聚合＋图表 md 引用） |
@@ -106,6 +106,28 @@ Private-library layout note: the pipeline lives under `book-content/<domain>/boo
   per-crop eyeballing; the p332-class lesson stands: third-party vision stays pre-screen
   only, direct Read of full-resolution pages is the acceptor.)
 
+### 直读安全审核风暴 · 隔离派发（2026-09-11 定案，星命溯源 b 片实证）
+
+某页图触发 GLM API 安全审核后，该图留在分片 agent 的会话历史里，后续每个请求都背着
+全部历史图反复被拦——星命溯源 b 片（45 页）从每页 3 分钟恶化到 36 分钟、9 小时才爬完；
+并发跑的干净 agent 同等内容 3 小时收工。**污染在上下文，不在内容**：同一页换干净会话
+通常一次过。处置原则＝卡页隔离、原会话废弃、余页换新：
+
+- **判定**（任一即成立）：① shard 文件出现 `# stuck <页号> <unix秒>` 行（PROMPT 停损
+  铁律自报）；② 主会话盯盘：shard 文件最新页行落盘后 >8 分钟无后页而 agent 仍在跑
+  （正常页 0.5–3 分钟，参照 `book_parse timing` 直读段）。
+- **处置**（顺序执行）：
+  1. **废弃原 agent**——TaskStop 杀掉，永不复用：上下文已被卡页图污染，留它越跑越慢。
+  2. **卡页派单页专责 agent**——干净上下文只读这一页；brief＝`book_parse prompts`
+     重取的正典逐页规则、范围钉死到该单页；仍追加写同一 shard 文件（merge 按页号
+     排序归一，交错无害）。
+  3. **余页派新 agent**——从文件内第一个未交付页到本片末页，同文件追加；并发守 ≤2，
+     超出排队。
+  4. 单页专责 agent 仍卡：换新 agent 再试一次（防偶发）；再卡＝**登记隔离**（页号＋
+     现象记入该书 README 源状况节），报告用户人工复核页面图（复核-安全审核-*/ 目录
+     模式）。merge 对缺页 exit 1 是故意的——档案完整性 loud fail，不许无源补线。
+- **风暴史回溯**：shard `ts` 差值＋`# stuck` 行即完整现场（timing 直读段呈尖峰）。
+
 ## ② Distill — every page, no skipping
 
 The user has not read the book; tier/skip decisions are not theirs to make. Distillation
@@ -144,9 +166,13 @@ covers EVERY page: per chapter, write 精读 notes from chapter.md (verbatim quo
 - Sharded agents delivering to chat only, or batching all pages into one end-of-run
   Write (death-prone; the canonical PROMPT requires per-page append + `ts` stamp).
 - EPUB media treated as page-anchored (it has no page semantics).
+- A shard agent grinding tens of minutes per page on moderation/safety-review retries —
+  that is context poisoning, not hard pages. Stop-loss (`# stuck`), abandon the agent,
+  isolate the page to a clean single-page agent (storm runbook above). Never let it ride.
 
 ## Maintenance
 
-PROMPT / pipeline changes require user confirmation, then commit in the open repo
-(github.com/MerliniKing/book-eat); private libraries symlink to it. Legacy OCR-era
-artifacts were purged 2026-08-28 (recoverable at git 34e6842^ if ever needed).
+PROMPT / pipeline changes require user confirmation; truth source is the private repo
+`~/code/my-skills/skills/book-eat` (library `.claude/skills/book-eat` symlinks into it).
+The open repo (github.com/MerliniKing/book-eat) is retired, no sync (2026-09-07 定案).
+Legacy OCR-era artifacts were purged 2026-08-28 (recoverable at git 34e6842^ if ever needed).

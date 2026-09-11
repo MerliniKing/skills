@@ -9,7 +9,7 @@ r"""book_parse —— 多模态直读逐页解析流水线（固化的原子能�
 子命令：
   render  <书> [--pdf 路径] [--dpi 100] [--workdir /tmp/book_parse_<slug>]
           渲染全书页码图（单一进程串行，遵守低占铁律）
-  prompts <书> [--workdir ...] [--shard 45] [--round A] [--out 目录]
+  prompts <书> [--workdir ...] [--shard 20] [--round A] [--out 目录]
           按正典 PROMPT 打印各分片派工文本（含页区间与交付文件名）
   merge   <书> --round A [--dir /tmp/book_parse] [--cropdpi 150] [--no-crop]
           合并分片 → pages.jsonl（页况档案）；随后按书页号对齐目录条目，
@@ -35,7 +35,10 @@ r"""book_parse —— 多模态直读逐页解析流水线（固化的原子能�
 ①逐页计时落盘＋增量交付抗中断，终报不再重贴全文，由 merge 行数/连续性校验兜底；
 ②regions 允许两界简写：图/表左右无环绕正文时只报 [y0,y1,type]（左右默认整页宽），
 有环绕正文则仍报全四坐标；裁后验收由逐张目验改为 10% 随机抽检（sample 子命令），
-crop 对两种坐标形双兼容）：
+crop 对两种坐标形双兼容。2026-09-11 用户定案增补：③停损铁律——某页连续 2 次被
+安全审核类拦截即记 # stuck 收工，卡页由主会话派干净专责 agent 隔离处理（星命溯源
+直读 b 片被污染上下文拖 9 小时的教训）；④续跑规则改按已交付页号集合判最小未交付页，
+兼容卡页缺口与多 agent 交错追加。分片默认 45→20 页，缩小单 agent 上下文的污染半径）：
 见 PROMPT 常量。改它须经用户确认。
 
 用法示例（在库根目录）：
@@ -70,12 +73,17 @@ PROMPT = """你是书页解析员。{workdir}/ 目录下是某本书的逐页扫
 5. 纪律：每页必须亲眼看过再判定；不跳页、不臆测；扫描污渍不是图
 
 计时与交付（铁律）：
-0. 动工前先用 Bash 跑 date +%s 记为 T0。若 {outfile} 已存在，先统计其中已有页行（grep -c '"page"'），
-   从下一个未交付页续跑，已交付页不重读。
+0. 动工前先用 Bash 跑 date +%s 记为 T0。若 {outfile} 已存在，先列出其中已交付页号
+   （grep -o '"page":[0-9]*' {outfile}），只从我负责的范围 {lo_png}–{hi_png} 内挑最小未交付页续跑；
+   范围外的页不碰（那是别的分片/专责 agent 的活），已交付页不重读。
 1. 每读完并转写完一页，立即用 Bash 把该页这行 JSONL 追加进 {outfile}（cat <<'EOF' 方式），
    对象内末尾固定加字段 "ts":<unix秒>，ts 取自同一条命令里的 $(date +%s)。逐页落盘，绝不攒批。
 2. {n} 页全部追加完，再用 Bash 向 {outfile} 末尾追加一行：# end $(date +%s)
-3. 最终回复固定一句话：「分片完成：{outfile} 共 {n} 行」。不要在回复里重贴 JSONL，不要任何解释。"""
+3. 最终回复固定一句话：「分片完成：{outfile} 共 {n} 行」。不要在回复里重贴 JSONL，不要任何解释。
+4. 停损（2026-09-11 定案）：某页连续 2 次请求被安全审核/内容拦截类错误挡住，立即放弃该页，
+   向 {outfile} 追加一行 # stuck <页号> <unix秒>，最终回复只写「卡页 N」收工。
+   不许恋战重试——卡页图会留在本会话上下文里，继续跑只会页页被拦越跑越慢；
+   该页由主会话派干净的专责 agent 单独处理。"""
 
 def _root():
     """仓库根自动探测：向上找含 sources/ 的目录（流水线可在根或 book-content/ 下执行）。"""
@@ -648,7 +656,7 @@ def main():
     ap.add_argument('book')
     ap.add_argument('--pdf'); ap.add_argument('--dpi', type=int, default=100)
     ap.add_argument('--workdir', default=None)
-    ap.add_argument('--shard', type=int, default=45)
+    ap.add_argument('--shard', type=int, default=20)
     ap.add_argument('--round', default='A')
     ap.add_argument('--out', default='/tmp/book_parse')
     ap.add_argument('--dir', default='/tmp/book_parse')
